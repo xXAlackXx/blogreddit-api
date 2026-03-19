@@ -9,6 +9,9 @@ from .permissions import IsAuthorOrReadOnly
 class PostListCreateView(generics.ListCreateAPIView):
     queryset = Post.objects.all().order_by('-created_at')
     serializer_class = PostSerializer
+    filterset_fields = ['author']
+    search_fields = ['title', 'content']
+    ordering_fields = ['created_at', 'upvotes', 'downvotes']
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
