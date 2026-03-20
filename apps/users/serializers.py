@@ -5,10 +5,13 @@ User = get_user_model()
 
 
 class UserSerializer(serializers.ModelSerializer):
+    posts_count = serializers.IntegerField(source='post_set.count', read_only=True)
+    comments_count = serializers.IntegerField(source='comment_set.count', read_only=True)
+
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'bio', 'avatar', 'karma', 'created_at']
-        read_only_fields = ['id', 'karma', 'created_at']
+        fields = ['id', 'username', 'email', 'bio', 'avatar', 'karma', 'created_at', 'posts_count', 'comments_count']
+        read_only_fields = ['id', 'karma', 'created_at', 'posts_count', 'comments_count']
 
 
 class RegisterSerializer(serializers.ModelSerializer):
