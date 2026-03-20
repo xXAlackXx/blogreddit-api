@@ -12,3 +12,4 @@ whitenoise==6.9.0
 django-cors-headers==4.7.0
 django-filter==25.1
 drf-spectacular==0.28.0
+Pillow==11.1.0
