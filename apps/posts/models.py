@@ -9,6 +9,7 @@ class Post(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     upvotes = models.PositiveIntegerField(default=0)
     downvotes = models.PositiveIntegerField(default=0)
+    image = models.ImageField(upload_to='posts/', null=True, blank=True)
     
     def __str__(self):
         return self.title
