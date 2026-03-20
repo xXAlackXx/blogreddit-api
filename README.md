@@ -54,18 +54,13 @@ blogreddit/
 
 ## Estado actual
 
-- [x] Fase 1 — Estructura del proyecto creada
-- [x] Fase 1 — MySQL configurado
-- [x] Fase 1 — Variables de entorno con python-decouple
-- [x] Fase 1 — Django REST Framework instalado
-- [x] Fase 1 — Modelo User personalizado (`AbstractUser`)
-- [x] Fase 1 — Modelo Post básico
-- [ ] Fase 2 — Autenticación JWT completa
-- [ ] Fase 3 — CRUD Posts + Categorías
-- [ ] Fase 4 — Comentarios anidados
-- [ ] Fase 5 — Sistema de votos
-- [ ] Fase 6 — Roles y administración
-- [ ] Fase 7 — Calidad profesional
+- [x] Fase 1 — Estructura del proyecto, MySQL, DRF, modelo User personalizado
+- [x] Fase 2 — Autenticación JWT completa (registro, login, refresh, perfil)
+- [x] Fase 3 — CRUD Posts con filtros, búsqueda y ordenamiento
+- [x] Fase 4 — Comentarios en posts (anidados opcionales)
+- [x] Fase 5 — Sistema de votos con toggle (up/down por post)
+- [x] Fase 6 — Roles (user / moderator / admin), panel Admin profesional
+- [x] Fase 7 — Throttling, Swagger docs, tests, manejo de errores, CORS para frontend
 
 ---
 
