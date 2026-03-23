@@ -37,18 +37,13 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-# Cloudinary — media storage persistente
-CLOUDINARY_STORAGE = {
-    'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME', ''),
-    'API_KEY':    os.environ.get('CLOUDINARY_API_KEY', ''),
-    'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET', ''),
-}
-INSTALLED_APPS = INSTALLED_APPS + ['cloudinary_storage', 'cloudinary']
+# Cloudinary — credentials leídas por config/cloudinary_storage.py via os.environ
+INSTALLED_APPS = INSTALLED_APPS + ['cloudinary']
 
-# Django 5.1+ requiere STORAGES dict (DEFAULT_FILE_STORAGE/STATICFILES_STORAGE eliminados)
+# Django 5.1+ requiere STORAGES dict
 STORAGES = {
     'default': {
-        'BACKEND': 'cloudinary_storage.storage.MediaCloudinaryStorage',
+        'BACKEND': 'config.cloudinary_storage.CloudinaryStorage',
     },
     'staticfiles': {
         'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
