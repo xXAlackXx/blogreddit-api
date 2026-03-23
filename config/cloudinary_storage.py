@@ -10,23 +10,24 @@ class CloudinaryStorage(Storage):
     Custom storage backend using cloudinary SDK directly.
     Compatible with Django 6+ (no dependency on django-cloudinary-storage).
     Stores the full Cloudinary HTTPS URL as the file name in the DB.
+    Reads credentials from CLOUDINARY_URL env var:
+      cloudinary://<api_key>:<api_secret>@<cloud_name>
     """
 
-    def __init__(self):
-        cloudinary.config(
-            cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME', ''),
-            api_key=os.environ.get('CLOUDINARY_API_KEY', ''),
-            api_secret=os.environ.get('CLOUDINARY_API_SECRET', ''),
-            secure=True,
-        )
+    def _configure(self):
+        url = os.environ.get('CLOUDINARY_URL', '')
+        if url:
+            cloudinary.config_from_url(url)
+        else:
+            cloudinary.config(
+                cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME', ''),
+                api_key=os.environ.get('CLOUDINARY_API_KEY', ''),
+                api_secret=os.environ.get('CLOUDINARY_API_SECRET', ''),
+                secure=True,
+            )
 
     def _save(self, name, content):
-        cloudinary.config(
-            cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME', ''),
-            api_key=os.environ.get('CLOUDINARY_API_KEY', ''),
-            api_secret=os.environ.get('CLOUDINARY_API_SECRET', ''),
-            secure=True,
-        )
+        self._configure()
         result = cloudinary.uploader.upload(
             content,
             public_id=f"media/{uuid.uuid4().hex}",
@@ -36,7 +37,6 @@ class CloudinaryStorage(Storage):
         return result['secure_url']
 
     def url(self, name):
-        # name is already the full Cloudinary HTTPS URL stored in DB
         return name
 
     def exists(self, name):
