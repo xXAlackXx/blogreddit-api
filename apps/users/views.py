@@ -1,11 +1,37 @@
+import os
 import traceback
+import uuid
+from urllib.parse import urlparse
+
+import cloudinary
+import cloudinary.uploader
 from django.contrib.auth import get_user_model
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
+
 from apps.posts.models import Comment
 from .serializers import UserSerializer, RegisterSerializer, UserCommentSerializer
 
 User = get_user_model()
+
+
+def _cloudinary_upload(file):
+    """Upload a file to Cloudinary and return the secure URL."""
+    url_str = os.environ.get('CLOUDINARY_URL', '')
+    if url_str:
+        parsed = urlparse(url_str)
+        cloudinary.config(
+            cloud_name=parsed.hostname,
+            api_key=parsed.username,
+            api_secret=parsed.password,
+            secure=True,
+        )
+    result = cloudinary.uploader.upload(
+        file,
+        folder='avatars',
+        resource_type='image',
+    )
+    return result['secure_url']
 
 
 class RegisterView(generics.CreateAPIView):
@@ -23,22 +49,30 @@ class ProfileView(generics.RetrieveUpdateAPIView):
 
     def update(self, request, *args, **kwargs):
         try:
-            return super().update(request, *args, **kwargs)
-        except Exception as e:
-            import os, cloudinary
-            cfg = cloudinary.config()
-            secret = cfg.api_secret or ''
-            detail = (
-                traceback.format_exc()
-                + f"\n--- CLOUDINARY DEBUG ---"
-                + f"\ncloud_name={cfg.cloud_name}"
-                + f"\napi_key={cfg.api_key}"
-                + f"\napi_secret_len={len(secret)}"
-                + f"\napi_secret_first3={secret[:3]}"
-                + f"\napi_secret_last3={secret[-3:]}"
-                + f"\nCLOUDINARY_URL_set={bool(os.environ.get('CLOUDINARY_URL'))}"
+            avatar_file = request.FILES.get('avatar')
+
+            # Build data dict without avatar so the serializer never touches it
+            data = {k: v for k, v in request.data.items() if k != 'avatar'}
+
+            serializer = self.get_serializer(
+                self.get_object(), data=data, partial=True
             )
-            return Response({'error': type(e).__name__, 'detail': detail}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            serializer.is_valid(raise_exception=True)
+            user = serializer.save()
+
+            if avatar_file:
+                url = _cloudinary_upload(avatar_file)
+                # Update avatar directly via queryset to skip the storage backend
+                User.objects.filter(pk=user.pk).update(avatar=url)
+                user.refresh_from_db()
+
+            return Response(self.get_serializer(user).data)
+
+        except Exception as e:
+            return Response(
+                {'error': type(e).__name__, 'detail': traceback.format_exc()},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 class UserCommentsView(generics.ListAPIView):
