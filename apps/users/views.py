@@ -28,19 +28,17 @@ class ProfileView(generics.RetrieveUpdateAPIView):
             import os, cloudinary
             cfg = cloudinary.config()
             secret = cfg.api_secret or ''
-            debug = {
-                'error': type(e).__name__,
-                'detail': traceback.format_exc(),
-                'cloudinary_debug': {
-                    'cloud_name': cfg.cloud_name,
-                    'api_key': cfg.api_key,
-                    'api_secret_len': len(secret),
-                    'api_secret_first3': secret[:3],
-                    'api_secret_last3': secret[-3:],
-                    'CLOUDINARY_URL_set': bool(os.environ.get('CLOUDINARY_URL')),
-                },
-            }
-            return Response(debug, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            detail = (
+                traceback.format_exc()
+                + f"\n--- CLOUDINARY DEBUG ---"
+                + f"\ncloud_name={cfg.cloud_name}"
+                + f"\napi_key={cfg.api_key}"
+                + f"\napi_secret_len={len(secret)}"
+                + f"\napi_secret_first3={secret[:3]}"
+                + f"\napi_secret_last3={secret[-3:]}"
+                + f"\nCLOUDINARY_URL_set={bool(os.environ.get('CLOUDINARY_URL'))}"
+            )
+            return Response({'error': type(e).__name__, 'detail': detail}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class UserCommentsView(generics.ListAPIView):
