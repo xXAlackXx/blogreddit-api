@@ -25,10 +25,22 @@ class ProfileView(generics.RetrieveUpdateAPIView):
         try:
             return super().update(request, *args, **kwargs)
         except Exception as e:
-            return Response(
-                {'error': type(e).__name__, 'detail': traceback.format_exc()},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+            import os, cloudinary
+            cfg = cloudinary.config()
+            secret = cfg.api_secret or ''
+            debug = {
+                'error': type(e).__name__,
+                'detail': traceback.format_exc(),
+                'cloudinary_debug': {
+                    'cloud_name': cfg.cloud_name,
+                    'api_key': cfg.api_key,
+                    'api_secret_len': len(secret),
+                    'api_secret_first3': secret[:3],
+                    'api_secret_last3': secret[-3:],
+                    'CLOUDINARY_URL_set': bool(os.environ.get('CLOUDINARY_URL')),
+                },
+            }
+            return Response(debug, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class UserCommentsView(generics.ListAPIView):
