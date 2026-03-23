@@ -14,15 +14,6 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'email', 'bio', 'avatar', 'karma', 'created_at', 'posts_count', 'comments_count']
         read_only_fields = ['id', 'karma', 'created_at', 'posts_count', 'comments_count']
 
-    def validate_avatar(self, value):
-        if value is None:
-            return value
-        allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
-        if value.content_type not in allowed:
-            raise serializers.ValidationError('Solo se permiten imágenes JPEG, PNG, GIF o WEBP.')
-        if value.size > 5 * 1024 * 1024:
-            raise serializers.ValidationError('El avatar no puede superar 5 MB.')
-        return value
 
 
 class UserCommentSerializer(serializers.ModelSerializer):
