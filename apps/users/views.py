@@ -1,5 +1,7 @@
+import traceback
 from django.contrib.auth import get_user_model
-from rest_framework import generics, permissions
+from rest_framework import generics, permissions, status
+from rest_framework.response import Response
 from apps.posts.models import Comment
 from .serializers import UserSerializer, RegisterSerializer, UserCommentSerializer
 
@@ -18,6 +20,15 @@ class ProfileView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         return self.request.user
+
+    def update(self, request, *args, **kwargs):
+        try:
+            return super().update(request, *args, **kwargs)
+        except Exception as e:
+            return Response(
+                {'error': type(e).__name__, 'detail': traceback.format_exc()},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 class UserCommentsView(generics.ListAPIView):
