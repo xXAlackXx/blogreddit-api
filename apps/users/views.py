@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from rest_framework import generics, permissions
-from rest_framework.response import Response
-from .serializers import UserSerializer, RegisterSerializer
+from apps.posts.models import Comment
+from .serializers import UserSerializer, RegisterSerializer, UserCommentSerializer
 
 User = get_user_model()
 
@@ -18,3 +18,11 @@ class ProfileView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         return self.request.user
+
+
+class UserCommentsView(generics.ListAPIView):
+    serializer_class = UserCommentSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Comment.objects.filter(author=self.request.user).order_by('-created_at')
