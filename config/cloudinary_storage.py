@@ -17,7 +17,15 @@ class CloudinaryStorage(Storage):
     def _configure(self):
         url = os.environ.get('CLOUDINARY_URL', '')
         if url:
-            cloudinary.config_from_url(url)
+            # Parse cloudinary://api_key:api_secret@cloud_name
+            from urllib.parse import urlparse
+            parsed = urlparse(url)
+            cloudinary.config(
+                cloud_name=parsed.hostname,
+                api_key=parsed.username,
+                api_secret=parsed.password,
+                secure=True,
+            )
         else:
             cloudinary.config(
                 cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME', ''),
