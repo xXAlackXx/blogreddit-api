@@ -21,6 +21,12 @@ class CloudinaryStorage(Storage):
         )
 
     def _save(self, name, content):
+        cloudinary.config(
+            cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME', ''),
+            api_key=os.environ.get('CLOUDINARY_API_KEY', ''),
+            api_secret=os.environ.get('CLOUDINARY_API_SECRET', ''),
+            secure=True,
+        )
         result = cloudinary.uploader.upload(
             content,
             public_id=f"media/{uuid.uuid4().hex}",
