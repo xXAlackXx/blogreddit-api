@@ -3,11 +3,12 @@ from .models import Post, Comment
 
 class PostSerializer(serializers.ModelSerializer):
     author = serializers.StringRelatedField(read_only=True)
+    author_avatar = serializers.CharField(source='author.avatar', read_only=True, default=None)
 
     class Meta:
         model = Post
-        fields = ['id', 'title', 'content', 'image', 'author', 'created_at', 'updated_at', 'upvotes', 'downvotes']
-        read_only_fields = ['id', 'author', 'created_at', 'updated_at', 'upvotes', 'downvotes']
+        fields = ['id', 'title', 'content', 'image', 'author', 'author_avatar', 'created_at', 'updated_at', 'upvotes', 'downvotes']
+        read_only_fields = ['id', 'author', 'author_avatar', 'created_at', 'updated_at', 'upvotes', 'downvotes']
 
     def validate_image(self, value):
         if value is None:
@@ -21,8 +22,9 @@ class PostSerializer(serializers.ModelSerializer):
 
 class CommentSerializer(serializers.ModelSerializer):
     author = serializers.StringRelatedField(read_only=True)
+    author_avatar = serializers.CharField(source='author.avatar', read_only=True, default=None)
 
     class Meta:
         model = Comment
-        fields = ['id', 'post', 'author', 'content', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'post', 'author', 'created_at', 'updated_at']
+        fields = ['id', 'post', 'author', 'author_avatar', 'content', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'post', 'author', 'author_avatar', 'created_at', 'updated_at']
