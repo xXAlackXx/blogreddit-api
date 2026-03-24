@@ -10,6 +10,7 @@ from .permissions import IsAuthorOrReadOnly
 class PostListCreateView(generics.ListCreateAPIView):
     queryset = Post.objects.all().order_by('-created_at')
     serializer_class = PostSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     filterset_fields = ['author']
     search_fields = ['title', 'content']
     ordering_fields = ['created_at', 'upvotes', 'downvotes']
@@ -24,6 +25,7 @@ class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class CommentListCreateView(generics.ListCreateAPIView):
     serializer_class = CommentSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
         return Comment.objects.filter(post_id=self.kwargs['post_pk']).order_by('-created_at')

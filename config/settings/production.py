@@ -23,7 +23,7 @@ DATABASES = {
 CORS_ALLOWED_ORIGINS = [o for o in os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',') if o]
 
 CORS_ALLOWED_ORIGIN_REGEXES = [
-    r'^https://.*\.vercel\.app$',
+    r'^https://blogreddit.*\.vercel\.app$',
 ]
 
 MIDDLEWARE = [
@@ -36,6 +36,20 @@ STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Security headers
+SECURE_HSTS_SECONDS = 31536000
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+SESSION_COOKIE_SECURE = True
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SECURE = True
+X_FRAME_OPTIONS = 'DENY'
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_BROWSER_XSS_FILTER = True
+
+# Rate limiting for login endpoint
+REST_FRAMEWORK_LOGIN_THROTTLE = '5/hour'
 
 # Cloudinary — credentials leídas por config/cloudinary_storage.py via os.environ
 INSTALLED_APPS = INSTALLED_APPS + ['cloudinary']

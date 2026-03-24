@@ -1,5 +1,4 @@
 import base64
-import traceback
 
 from django.contrib.auth import get_user_model
 from rest_framework import generics, permissions, status
@@ -9,6 +8,9 @@ from apps.posts.models import Comment
 from .serializers import UserSerializer, RegisterSerializer, UserCommentSerializer
 
 User = get_user_model()
+
+ALLOWED_AVATAR_TYPES = {'image/jpeg', 'image/png', 'image/gif', 'image/webp'}
+MAX_AVATAR_BYTES = 2 * 1024 * 1024  # 2 MB
 
 
 class RegisterView(generics.CreateAPIView):
@@ -25,27 +27,32 @@ class ProfileView(generics.RetrieveUpdateAPIView):
         return self.request.user
 
     def update(self, request, *args, **kwargs):
-        try:
-            avatar_file = request.FILES.get('avatar')
+        avatar_file = request.FILES.get('avatar')
 
-            data = {k: v for k, v in request.data.items() if k != 'avatar'}
-            serializer = self.get_serializer(self.get_object(), data=data, partial=True)
-            serializer.is_valid(raise_exception=True)
-            user = serializer.save()
+        if avatar_file:
+            if avatar_file.content_type not in ALLOWED_AVATAR_TYPES:
+                return Response(
+                    {'avatar': 'Only JPEG, PNG, GIF, and WEBP images are allowed.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if avatar_file.size > MAX_AVATAR_BYTES:
+                return Response(
+                    {'avatar': 'Avatar must be 2 MB or less.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
-            if avatar_file:
-                mime = avatar_file.content_type or 'image/jpeg'
-                encoded = base64.b64encode(avatar_file.read()).decode('utf-8')
-                user.avatar = f'data:{mime};base64,{encoded}'
-                user.save(update_fields=['avatar'])
+        data = {k: v for k, v in request.data.items() if k != 'avatar'}
+        serializer = self.get_serializer(self.get_object(), data=data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
 
-            return Response(self.get_serializer(user).data)
+        if avatar_file:
+            mime = avatar_file.content_type
+            encoded = base64.b64encode(avatar_file.read()).decode('utf-8')
+            user.avatar = f'data:{mime};base64,{encoded}'
+            user.save(update_fields=['avatar'])
 
-        except Exception as e:
-            return Response(
-                {'error': type(e).__name__, 'detail': traceback.format_exc()},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+        return Response(self.get_serializer(user).data)
 
 
 class UserCommentsView(generics.ListAPIView):
