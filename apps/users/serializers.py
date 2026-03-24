@@ -26,6 +26,15 @@ class UserCommentSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class PublicUserSerializer(serializers.ModelSerializer):
+    posts_count    = serializers.IntegerField(source='post_set.count',    read_only=True)
+    comments_count = serializers.IntegerField(source='comment_set.count', read_only=True)
+
+    class Meta:
+        model  = User
+        fields = ['id', 'username', 'bio', 'avatar', 'karma', 'created_at', 'posts_count', 'comments_count']
+
+
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)
     password_confirm = serializers.CharField(write_only=True)

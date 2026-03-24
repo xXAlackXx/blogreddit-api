@@ -5,7 +5,7 @@ from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 
 from apps.posts.models import Comment
-from .serializers import UserSerializer, RegisterSerializer, UserCommentSerializer
+from .serializers import UserSerializer, RegisterSerializer, UserCommentSerializer, PublicUserSerializer
 
 User = get_user_model()
 
@@ -53,6 +53,22 @@ class ProfileView(generics.RetrieveUpdateAPIView):
             user.save(update_fields=['avatar'])
 
         return Response(self.get_serializer(user).data)
+
+
+class PublicProfileView(generics.RetrieveAPIView):
+    serializer_class   = PublicUserSerializer
+    permission_classes = [permissions.AllowAny]
+    lookup_field       = 'username'
+    queryset           = User.objects.all()
+
+
+class PublicUserCommentsView(generics.ListAPIView):
+    serializer_class   = UserCommentSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        user = generics.get_object_or_404(User, username=self.kwargs['username'])
+        return Comment.objects.filter(author=user).order_by('-created_at')
 
 
 class UserCommentsView(generics.ListAPIView):
