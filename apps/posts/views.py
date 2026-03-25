@@ -1,11 +1,14 @@
 from rest_framework import generics, permissions, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from django.db.models import F
+from django.db.models import F, Q
 from django.db import transaction
+from django.contrib.auth import get_user_model
 from .models import Post, Comment, Vote
-from .serializers import PostSerializer, CommentSerializer
-from .permissions import IsAuthorOrReadOnly
+from .serializers import PostSerializer, CommentSerializer, AdminCommentSerializer
+from .permissions import IsAuthorOrReadOnly, IsAdminRole
+
+User = get_user_model()
 
 class PostListCreateView(generics.ListCreateAPIView):
     queryset = Post.objects.all().order_by('-created_at')
@@ -83,3 +86,50 @@ class VoteView(APIView):
                 else:
                     Post.objects.filter(pk=pk).update(downvotes=F('downvotes') + 1)
                 return Response({'message': 'Voto registrado'}, status=status.HTTP_201_CREATED)
+
+
+# ── ADMIN VIEWS ─────────────────────────────────────────────────────────────
+
+class AdminPostListView(generics.ListAPIView):
+    permission_classes = [IsAdminRole]
+    serializer_class = PostSerializer
+
+    def get_queryset(self):
+        qs = Post.objects.all().order_by('-created_at')
+        search = self.request.query_params.get('search', '').strip()
+        if search:
+            qs = qs.filter(Q(title__icontains=search) | Q(author__username__icontains=search))
+        return qs
+
+
+class AdminPostDeleteView(generics.DestroyAPIView):
+    permission_classes = [IsAdminRole]
+    queryset = Post.objects.all()
+
+
+class AdminCommentListView(generics.ListAPIView):
+    permission_classes = [IsAdminRole]
+    serializer_class = AdminCommentSerializer
+
+    def get_queryset(self):
+        qs = Comment.objects.all().select_related('post', 'author').order_by('-created_at')
+        search = self.request.query_params.get('search', '').strip()
+        if search:
+            qs = qs.filter(Q(content__icontains=search) | Q(author__username__icontains=search))
+        return qs
+
+
+class AdminCommentDeleteView(generics.DestroyAPIView):
+    permission_classes = [IsAdminRole]
+    queryset = Comment.objects.all()
+
+
+class AdminStatsView(APIView):
+    permission_classes = [IsAdminRole]
+
+    def get(self, request):
+        return Response({
+            'total_posts':    Post.objects.count(),
+            'total_comments': Comment.objects.count(),
+            'total_users':    User.objects.count(),
+        })
