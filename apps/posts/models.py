@@ -10,7 +10,8 @@ class Post(models.Model):
     upvotes = models.PositiveIntegerField(default=0)
     downvotes = models.PositiveIntegerField(default=0)
     image = models.ImageField(upload_to='posts/', null=True, blank=True)
-    
+    hashtag = models.CharField(max_length=50, default='general')
+
     def __str__(self):
         return self.title
 

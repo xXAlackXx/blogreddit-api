@@ -14,7 +14,7 @@ class PostListCreateView(generics.ListCreateAPIView):
     queryset = Post.objects.all().order_by('-created_at')
     serializer_class = PostSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-    filterset_fields = ['author']
+    filterset_fields = ['author', 'hashtag']
     search_fields = ['title', 'content']
     ordering_fields = ['created_at', 'upvotes', 'downvotes']
 

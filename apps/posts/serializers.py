@@ -1,14 +1,26 @@
+import re
 from rest_framework import serializers
 from .models import Post, Comment
 
 class PostSerializer(serializers.ModelSerializer):
     author = serializers.StringRelatedField(read_only=True)
     author_avatar = serializers.CharField(source='author.avatar', read_only=True, default=None)
+    hashtag = serializers.CharField(max_length=50, required=True)
 
     class Meta:
         model = Post
-        fields = ['id', 'title', 'content', 'image', 'author', 'author_avatar', 'created_at', 'updated_at', 'upvotes', 'downvotes']
+        fields = ['id', 'title', 'content', 'image', 'hashtag', 'author', 'author_avatar', 'created_at', 'updated_at', 'upvotes', 'downvotes']
         read_only_fields = ['id', 'author', 'author_avatar', 'created_at', 'updated_at', 'upvotes', 'downvotes']
+
+    def validate_hashtag(self, value):
+        value = value.lstrip('#').lower().strip()
+        if not re.match(r'^[a-z0-9_]+$', value):
+            raise serializers.ValidationError('Solo letras, números y guiones bajos.')
+        if len(value) < 2:
+            raise serializers.ValidationError('Mínimo 2 caracteres.')
+        if len(value) > 30:
+            raise serializers.ValidationError('Máximo 30 caracteres.')
+        return value
 
     def validate_image(self, value):
         if value is None:
