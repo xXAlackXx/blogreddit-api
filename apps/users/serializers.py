@@ -38,50 +38,47 @@ class PublicUserSerializer(serializers.ModelSerializer):
 
 
 class ProfileThemeSerializer(serializers.ModelSerializer):
-    has_banner_image = serializers.SerializerMethodField()
-    banner_image_url = serializers.SerializerMethodField()
-    mood_display     = serializers.SerializerMethodField()
-    banner_css       = serializers.SerializerMethodField()
-    pattern_css      = serializers.SerializerMethodField()
-    css_vars         = serializers.SerializerMethodField()
+    """
+    Only scalar fields live here — banner_image (BinaryField) is never
+    exposed through this serializer, so save() never touches it.
+    Three read-only helpers give the frontend what it needs.
+    """
+    has_custom_banner = serializers.SerializerMethodField()
+    banner_image_url  = serializers.SerializerMethodField()
+    banner_gradient   = serializers.SerializerMethodField()
 
     class Meta:
         model  = ProfileTheme
+        # ⚠️ banner_image / banner_image_content_type intentionally absent
         fields = [
-            'accent_color', 'banner_preset', 'has_banner_image', 'banner_image_url',
-            'pattern', 'font', 'banner_opacity', 'glow_intensity', 'border_accent',
-            'mood', 'mood_display', 'banner_css', 'pattern_css', 'css_vars',
+            'accent_color', 'banner_preset', 'pattern', 'font',
+            'banner_opacity', 'glow_intensity', 'border_accent', 'mood',
+            'has_custom_banner', 'banner_image_url', 'banner_gradient',
+            'updated_at',
         ]
-        read_only_fields = [
-            'has_banner_image', 'banner_image_url', 'mood_display',
-            'banner_css', 'pattern_css', 'css_vars',
-        ]
+        read_only_fields = ['has_custom_banner', 'banner_image_url', 'banner_gradient', 'updated_at']
 
-    # --- read-only computed fields ---
-
-    def get_has_banner_image(self, obj):
+    def get_has_custom_banner(self, obj):
         return bool(obj.banner_image)
 
     def get_banner_image_url(self, obj):
-        return f'/api/users/{obj.user_id}/banner-image/' if obj.banner_image else None
+        if not obj.banner_image:
+            return None
+        request = self.context.get('request')
+        url = f'/api/users/{obj.user_id}/banner-image/'
+        return request.build_absolute_uri(url) if request else url
 
-    def get_mood_display(self, obj):
-        return obj.get_mood_display()
+    def get_banner_gradient(self, obj):
+        return obj.BANNER_PRESETS.get(obj.banner_preset, obj.BANNER_PRESETS['nebula'])
 
-    def get_banner_css(self, obj):
-        return obj.get_banner_css()
-
-    def get_pattern_css(self, obj):
-        return obj.get_pattern_css()
-
-    def get_css_vars(self, obj):
-        return obj.get_css_vars()
-
-    # --- validation ---
+    # ── validation ──────────────────────────────────────────────────────────
 
     def validate_accent_color(self, value):
+        value = value.strip()
+        if not value.startswith('#'):
+            value = '#' + value
         if not re.match(r'^#[0-9A-Fa-f]{6}$', value):
-            raise serializers.ValidationError('Must be a valid hex color (#RRGGBB)')
+            raise serializers.ValidationError('Must be a valid 6-digit hex color (#RRGGBB)')
         return value.upper()
 
     def validate_banner_preset(self, value):
@@ -90,25 +87,33 @@ class ProfileThemeSerializer(serializers.ModelSerializer):
         return value
 
     def validate_font(self, value):
-        valid = [f[0] for f in ProfileTheme.FONT_CHOICES]
-        if value not in valid:
-            raise serializers.ValidationError('Invalid font')
+        if value not in [f[0] for f in ProfileTheme.FONT_CHOICES]:
+            raise serializers.ValidationError('Invalid font choice')
         return value
 
     def validate_banner_opacity(self, value):
-        if not (20 <= value <= 100):
+        if not (20 <= int(value) <= 100):
             raise serializers.ValidationError('Must be 20–100')
-        return value
+        return int(value)
 
     def validate_glow_intensity(self, value):
-        if not (0 <= value <= 100):
+        if not (0 <= int(value) <= 100):
             raise serializers.ValidationError('Must be 0–100')
-        return value
+        return int(value)
 
     def validate_border_accent(self, value):
-        if not (0 <= value <= 100):
+        if not (0 <= int(value) <= 100):
             raise serializers.ValidationError('Must be 0–100')
-        return value
+        return int(value)
+
+    # ── override update so we only write the changed scalar fields ──────────
+
+    def update(self, instance, validated_data):
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        # Never include banner_image / banner_image_content_type in update_fields
+        instance.save(update_fields=list(validated_data.keys()) + ['updated_at'])
+        return instance
 
 
 class RegisterSerializer(serializers.ModelSerializer):

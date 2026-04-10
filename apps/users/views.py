@@ -101,19 +101,10 @@ class ThemeView(generics.RetrieveUpdateAPIView):
 
     def update(self, request, *args, **kwargs):
         theme = self.get_object()
-        WRITABLE = ('accent_color', 'banner_preset', 'pattern', 'font',
-                    'banner_opacity', 'glow_intensity', 'border_accent', 'mood')
-        # Only pass the writable fields to avoid validation noise from computed fields
-        data = {k: v for k, v in request.data.items() if k in WRITABLE}
-        serializer = self.get_serializer(theme, data=data, partial=True)
+        serializer = self.get_serializer(theme, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        vd = serializer.validated_data
-        for field, value in vd.items():
-            setattr(theme, field, value)
-        if vd:
-            ProfileTheme.objects.filter(pk=theme.pk).update(**vd)
-            theme.refresh_from_db()
-        return Response(self.get_serializer(theme).data)
+        serializer.save()   # calls our custom update() → save(update_fields=[...])
+        return Response(serializer.data)
 
 
 class PublicThemeView(generics.RetrieveAPIView):
@@ -144,7 +135,10 @@ class BannerImageView(APIView):
 
 
 class BannerUploadView(APIView):
-    """POST /api/users/me/theme/banner/  — upload a custom banner image"""
+    """
+    POST   /api/users/me/theme/banner/  — upload custom banner image
+    DELETE /api/users/me/theme/banner/  — remove custom banner image
+    """
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
@@ -156,22 +150,21 @@ class BannerUploadView(APIView):
             return Response({'error': 'File too large (max 3 MB)'}, status=status.HTTP_400_BAD_REQUEST)
         if file.content_type not in ALLOWED_BANNER_TYPES:
             return Response({'error': 'Invalid file type'}, status=status.HTTP_400_BAD_REQUEST)
-        theme.banner_image              = file.read()
-        theme.banner_image_content_type = file.content_type
-        theme.save(update_fields=['banner_image', 'banner_image_content_type', 'updated_at'])
-        return Response({
-            'status': 'ok',
-            'banner_image_url': f'/api/users/{request.user.id}/banner-image/',
-        })
+        # Use queryset.update so we never touch the scalar fields
+        ProfileTheme.objects.filter(pk=theme.pk).update(
+            banner_image=file.read(),
+            banner_image_content_type=file.content_type,
+        )
+        theme.refresh_from_db()
+        serializer = ProfileThemeSerializer(theme, context={'request': request})
+        return Response(serializer.data)
 
-
-class BannerRemoveView(APIView):
-    """POST /api/users/me/theme/banner/remove/  — revert to gradient preset"""
-    permission_classes = [permissions.IsAuthenticated]
-
-    def post(self, request):
+    def delete(self, request):
         theme, _ = ProfileTheme.objects.get_or_create(user=request.user)
-        theme.banner_image              = None
-        theme.banner_image_content_type = None
-        theme.save(update_fields=['banner_image', 'banner_image_content_type', 'updated_at'])
-        return Response({'status': 'ok'})
+        ProfileTheme.objects.filter(pk=theme.pk).update(
+            banner_image=None,
+            banner_image_content_type=None,
+        )
+        theme.refresh_from_db()
+        serializer = ProfileThemeSerializer(theme, context={'request': request})
+        return Response(serializer.data)
