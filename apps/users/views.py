@@ -101,17 +101,18 @@ class ThemeView(generics.RetrieveUpdateAPIView):
 
     def update(self, request, *args, **kwargs):
         theme = self.get_object()
-        serializer = self.get_serializer(theme, data=request.data, partial=True)
+        WRITABLE = ('accent_color', 'banner_preset', 'pattern', 'font',
+                    'banner_opacity', 'glow_intensity', 'border_accent', 'mood')
+        # Only pass the writable fields to avoid validation noise from computed fields
+        data = {k: v for k, v in request.data.items() if k in WRITABLE}
+        serializer = self.get_serializer(theme, data=data, partial=True)
         serializer.is_valid(raise_exception=True)
-        # Only update the fields that were sent — never touch banner_image binary
-        allowed = [
-            'accent_color', 'banner_preset', 'pattern', 'font',
-            'banner_opacity', 'glow_intensity', 'border_accent', 'mood',
-        ]
-        for field in allowed:
-            if field in serializer.validated_data:
-                setattr(theme, field, serializer.validated_data[field])
-        theme.save(update_fields=[f for f in allowed if f in serializer.validated_data] + ['updated_at'])
+        vd = serializer.validated_data
+        for field, value in vd.items():
+            setattr(theme, field, value)
+        if vd:
+            ProfileTheme.objects.filter(pk=theme.pk).update(**vd)
+            theme.refresh_from_db()
         return Response(self.get_serializer(theme).data)
 
 
