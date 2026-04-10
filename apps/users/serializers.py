@@ -8,8 +8,8 @@ User = get_user_model()
 
 
 class UserSerializer(serializers.ModelSerializer):
-    posts_count = serializers.IntegerField(source='post_set.count', read_only=True)
-    comments_count = serializers.IntegerField(source='comment_set.count', read_only=True)
+    posts_count = serializers.IntegerField(read_only=True)
+    comments_count = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = User
@@ -29,8 +29,8 @@ class UserCommentSerializer(serializers.ModelSerializer):
 
 
 class PublicUserSerializer(serializers.ModelSerializer):
-    posts_count    = serializers.IntegerField(source='post_set.count',    read_only=True)
-    comments_count = serializers.IntegerField(source='comment_set.count', read_only=True)
+    posts_count    = serializers.IntegerField(read_only=True)
+    comments_count = serializers.IntegerField(read_only=True)
 
     class Meta:
         model  = User

@@ -1,6 +1,7 @@
 import base64
 
 from django.contrib.auth import get_user_model
+from django.db.models import Count
 from django.http import HttpResponse
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
@@ -33,7 +34,10 @@ class ProfileView(generics.RetrieveUpdateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_object(self):
-        return self.request.user
+        return User.objects.annotate(
+            posts_count=Count('posts', distinct=True),
+            comments_count=Count('comments', distinct=True),
+        ).get(pk=self.request.user.pk)
 
     def update(self, request, *args, **kwargs):
         avatar_file = request.FILES.get('avatar')
@@ -68,7 +72,12 @@ class PublicProfileView(generics.RetrieveAPIView):
     serializer_class   = PublicUserSerializer
     permission_classes = [permissions.AllowAny]
     lookup_field       = 'username'
-    queryset           = User.objects.all()
+
+    def get_queryset(self):
+        return User.objects.annotate(
+            posts_count=Count('posts', distinct=True),
+            comments_count=Count('comments', distinct=True),
+        )
 
 
 class PublicUserCommentsView(generics.ListAPIView):

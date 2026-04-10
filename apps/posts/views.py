@@ -3,6 +3,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.db.models import F, Q
 from django.db import transaction
+from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
 from .models import Post, Comment, Vote
 from .serializers import PostSerializer, CommentSerializer, AdminCommentSerializer
@@ -11,7 +12,7 @@ from .permissions import IsAuthorOrReadOnly, IsAdminRole
 User = get_user_model()
 
 class PostListCreateView(generics.ListCreateAPIView):
-    queryset = Post.objects.all().order_by('-created_at')
+    queryset = Post.objects.select_related('author').order_by('-created_at')
     serializer_class = PostSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     filterset_fields = ['author', 'hashtag']
@@ -22,7 +23,7 @@ class PostListCreateView(generics.ListCreateAPIView):
         serializer.save(author=self.request.user)
 
 class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Post.objects.all()
+    queryset = Post.objects.select_related('author').all()
     serializer_class = PostSerializer
     permission_classes = [IsAuthorOrReadOnly]
 
@@ -31,10 +32,10 @@ class CommentListCreateView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
-        return Comment.objects.filter(post_id=self.kwargs['post_pk']).order_by('-created_at')
+        return Comment.objects.select_related('author').filter(post_id=self.kwargs['post_pk']).order_by('-created_at')
 
     def perform_create(self, serializer):
-        post = Post.objects.get(pk=self.kwargs['post_pk'])
+        post = get_object_or_404(Post, pk=self.kwargs['post_pk'])
         serializer.save(author=self.request.user, post=post)
 
 class CommentDetailView(generics.RetrieveUpdateDestroyAPIView):
